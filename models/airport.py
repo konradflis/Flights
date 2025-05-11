@@ -9,7 +9,7 @@ class Airport(Base):
     id = Column(Integer, primary_key=True)
     airport_name = Column(String)
     airport_iata = Column(String)
-    aiport_icao = Column(String)
+    airport_icao = Column(String)
     timezone = Column(String)
 
     departures = relationship(

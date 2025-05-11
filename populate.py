@@ -3,7 +3,7 @@ import pandas as pd
 import os
 from datetime import datetime
 from db import SessionLocal
-from models import Airline, Airport, Airplane, Flight
+from models import Airline, Airport, Airplane, Flight, FlightDetails
 
 
 def get_or_create(session, model, defaults=None, **kwargs):
@@ -33,7 +33,7 @@ def get_airport_if_known(session, data):
         Airport,
         airport_name=data.get("airport_name"),
         airport_iata=iata,
-        aiport_icao=data.get("airport_icao"),
+        airport_icao=data.get("airport_icao"),
         timezone=data.get("timezone")
     )
 
@@ -96,17 +96,27 @@ def populate_from_csv(session, csv_path):
                 return None
 
         dep_utc = parse_dt(row.get('departure_scheduled_utc'))
+        dep_rev_utc = parse_dt(row.get('departure_revised_utc'))
         arr_utc = parse_dt(row.get('arrival_scheduled_utc'))
+        arr_rev_utc = parse_dt(row.get('arrival_revised_utc'))
 
+        # Flight Details
+        flight_details = get_or_create(session, FlightDetails,
+                                       flight_number=row['flight_number'],
+                                       call_sign=row['call_sign'])
+
+        # Flight
         flight = Flight(
-            flight_number=row['flight_number'],
-            call_sign=row['call_sign'],
+            status=row['status'],
+            flight_details_id=flight_details.id,
             arline_id=airline.id,
             airplane_id=airplane.id,
             dep_airport_id=dep_airport.id if dep_airport else None,
             arr_airport_id=arr_airport.id if arr_airport else None,
             dep_date_time_UTC=dep_utc,
-            arr_date_time_UTC=arr_utc
+            dep_rev_date_time_UTC=dep_rev_utc,
+            arr_date_time_UTC=arr_utc,
+            arr_rev_date_time_UTC=arr_rev_utc
         )
         session.add(flight)
 
