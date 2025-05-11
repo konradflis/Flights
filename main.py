@@ -5,7 +5,6 @@ from db import Base
 
 
 def delete_old_db():
-    # Replace with your actual database file path
     db_path = "flights.db"
     if os.path.exists(db_path):
         os.remove(db_path)

@@ -77,6 +77,10 @@ def populate_from_csv(session, csv_path):
             f"No airport mapping found for code '{airport_code}' in file '{csv_path}'.")
 
     for _, row in df.iterrows():
+        # Filter rows based on status
+        if row['status'] not in ['Arrived', 'Departed']:
+            continue
+
         direction = str(row['direction']).strip().lower()
 
         # Airline and Airplane
