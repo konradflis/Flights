@@ -85,6 +85,10 @@ def populate_from_csv(session, csv_path):
 
         # Airline and Airplane
         airline = None
+        if pd.notna(row['airline_name']) and row['airline_name'] == "Unknown/Private owner":
+            print(f"Skipping row with airline name: {row['airline_name']}")
+            continue
+
         if pd.notna(row['airline_name']) or pd.notna(row['airline_iata']) or pd.notna(row['airline_icao']):
             airline = get_or_create_airline(session, {
                 'airline_name': row['airline_name'],
@@ -100,6 +104,10 @@ def populate_from_csv(session, csv_path):
 
         # Airports
         if direction == 'departure':
+            if pd.isna(row['arrival_airport_name']) or pd.isna(row['arrival_airport_iata']) or pd.isna(row['arrival_airport_icao']):
+                print(
+                    f"Missing arrival airport data for row: {row['flight_number']}")
+                continue
             dep_airport = get_or_create(
                 session, Airport, **context_airport_data)
 
@@ -112,6 +120,10 @@ def populate_from_csv(session, csv_path):
             arr_airport = get_airport_if_known(session, arr_airport_data)
 
         elif direction == 'arrival':
+            if pd.isna(row['departure_airport_name']) or pd.isna(row['departure_airport_iata']) or pd.isna(row['departure_airport_icao']):
+                print(
+                    f"Missing departure airport data for row: {row['flight_number']}")
+                continue
             arr_airport = get_or_create(
                 session, Airport, **context_airport_data)
 
@@ -135,8 +147,13 @@ def populate_from_csv(session, csv_path):
 
         dep_utc = parse_dt(row.get('departure_scheduled_utc'))
         dep_rev_utc = parse_dt(row.get('departure_revised_utc'))
+        if dep_rev_utc is None:
+            dep_rev_utc = dep_utc
+
         arr_utc = parse_dt(row.get('arrival_scheduled_utc'))
         arr_rev_utc = parse_dt(row.get('arrival_revised_utc'))
+        if arr_rev_utc is None:
+            arr_rev_utc = arr_utc
 
         # Flight Details
         flight_details = get_or_create(session, FlightDetails,
@@ -161,9 +178,16 @@ def populate_from_csv(session, csv_path):
     session.commit()
 
 
-if __name__ == "__main__":
+def main():
     session = SessionLocal()
-    # Replace with your actual file
-    populate_from_csv(
-        session, "csv_data/flights_krk_May_7_23_12_last_7_days.csv")
+    folder_path = "csv_data"
+    for file_name in os.listdir(folder_path):
+        if file_name.endswith(".csv"):
+            csv_path = os.path.join(folder_path, file_name)
+            print(f"Processing file: {csv_path}")
+            populate_from_csv(session, csv_path)
     session.close()
+
+
+if __name__ == "__main__":
+    main()
