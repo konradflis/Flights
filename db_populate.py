@@ -2,6 +2,7 @@ from airport_map import airport_map
 import pandas as pd
 import os
 from datetime import datetime
+from copy import deepcopy
 from db import SessionLocal
 from models import Airline, Airport, Airplane, Flight, FlightDetails
 
@@ -63,14 +64,17 @@ def get_airport_if_known(session, data):
         airport_name=data.get("airport_name"),
         airport_iata=iata,
         airport_icao=data.get("airport_icao"),
-        timezone=data.get("timezone")
+        timezone=data.get("timezone"),
+        latitude=data.get('latitude'),
+        longitude=data.get('longitude')
     )
 
 
-def populate_from_csv(session, csv_path):
+def populate_from_csv(session, csv_path, additional_data_path='additional_data.xlsx'):
     df = pd.read_csv(csv_path)
     airport_code = os.path.basename(csv_path).split('_')[1].lower()
     context_airport_data = airport_map.get(airport_code)
+    additional_data = pd.read_excel(additional_data_path)       # additional airport data
 
     if not context_airport_data:
         raise ValueError(
@@ -108,15 +112,29 @@ def populate_from_csv(session, csv_path):
                 print(
                     f"Missing arrival airport data for row: {row['flight_number']}")
                 continue
+
+            # Merge context data dict with additional data dict
+            additional_info = additional_data[additional_data['iata'] == context_airport_data['airport_iata']]
+
+            context_airport_data_tmp = deepcopy(context_airport_data)
+            additional_data_tmp = {'latitude': additional_info.iloc[0]["lat"],
+                                   'longitude': additional_info.iloc[0]["long"]}
+
+            context_airport_data_tmp.update(additional_data_tmp)
+
             dep_airport = get_or_create(
-                session, Airport, **context_airport_data)
+                session, Airport, **context_airport_data_tmp)
+
 
             arr_airport_data = {
                 'airport_name': row['arrival_airport_name'],
                 'airport_iata': row['arrival_airport_iata'],
                 'airport_icao': row['arrival_airport_icao'],
-                'timezone': row['arrival_airport_time_zone']
+                'timezone': row['arrival_airport_time_zone'],
+                'latitude': additional_info.iloc[0]["lat"],
+                'longitude': additional_info.iloc[0]["long"]
             }
+
             arr_airport = get_airport_if_known(session, arr_airport_data)
 
         elif direction == 'arrival':
@@ -124,15 +142,28 @@ def populate_from_csv(session, csv_path):
                 print(
                     f"Missing departure airport data for row: {row['flight_number']}")
                 continue
+
+            additional_info = additional_data[additional_data['iata'] == context_airport_data['airport_iata']]
+
+            context_airport_data_tmp = deepcopy(context_airport_data)
+            additional_data_tmp = {'latitude': additional_info.iloc[0]["lat"],
+                                   'longitude': additional_info.iloc[0]["long"]}
+
+            context_airport_data_tmp.update(additional_data_tmp)
+
             arr_airport = get_or_create(
-                session, Airport, **context_airport_data)
+                session, Airport, **context_airport_data_tmp)
+
 
             dep_airport_data = {
                 'airport_name': row['departure_airport_name'],
                 'airport_iata': row['departure_airport_iata'],
                 'airport_icao': row['departure_airport_icao'],
-                'timezone': row['departure_airport_time_zone']
+                'timezone': row['departure_airport_time_zone'],
+                'latitude': additional_info.iloc[0]["lat"],
+                'longitude': additional_info.iloc[0]["long"]
             }
+
             dep_airport = get_airport_if_known(session, dep_airport_data)
 
         else:
