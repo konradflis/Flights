@@ -114,16 +114,17 @@ def populate_from_csv(session, csv_path, additional_data_path='additional_data.x
                 continue
 
             # Merge context data dict with additional data dict
-            additional_info = additional_data[additional_data['iata'] == context_airport_data['airport_iata']]
+            iata_code = str(row['arrival_airport_iata']).strip().upper()
+            additional_info = additional_data[additional_data['iata'].str.strip().str.upper() == iata_code]
+            additional_info_context = additional_data[additional_data['iata'] == context_airport_data['airport_iata']]
 
-            context_airport_data_tmp = deepcopy(context_airport_data)
-            additional_data_tmp = {'latitude': additional_info.iloc[0]["lat"],
-                                   'longitude': additional_info.iloc[0]["long"]}
+            additional_data_tmp = {'latitude': additional_info_context.iloc[0]["lat"],
+                                   'longitude': additional_info_context.iloc[0]["long"]}
 
-            context_airport_data_tmp.update(additional_data_tmp)
+            context_airport_data.update(additional_data_tmp)
 
             dep_airport = get_or_create(
-                session, Airport, **context_airport_data_tmp)
+                session, Airport, **context_airport_data)
 
 
             arr_airport_data = {
@@ -143,16 +144,17 @@ def populate_from_csv(session, csv_path, additional_data_path='additional_data.x
                     f"Missing departure airport data for row: {row['flight_number']}")
                 continue
 
-            additional_info = additional_data[additional_data['iata'] == context_airport_data['airport_iata']]
+            iata_code = str(row['departure_airport_iata']).strip().upper()
+            additional_info = additional_data[additional_data['iata'].str.strip().str.upper() == iata_code]
+            additional_info_context = additional_data[additional_data['iata'] == context_airport_data['airport_iata']]
 
-            context_airport_data_tmp = deepcopy(context_airport_data)
-            additional_data_tmp = {'latitude': additional_info.iloc[0]["lat"],
-                                   'longitude': additional_info.iloc[0]["long"]}
+            additional_data_tmp = {'latitude': additional_info_context.iloc[0]["lat"],
+                                   'longitude': additional_info_context.iloc[0]["long"]}
 
-            context_airport_data_tmp.update(additional_data_tmp)
+            context_airport_data.update(additional_data_tmp)
 
             arr_airport = get_or_create(
-                session, Airport, **context_airport_data_tmp)
+                session, Airport, **context_airport_data)
 
 
             dep_airport_data = {
