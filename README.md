@@ -29,7 +29,6 @@ This project provides tools for analyzing flight data using the [Aerodatabox API
 
    ```bash
    python main.py
-   python populate.py
    ```
 
 4. The database will be created in the same directory as the script.
